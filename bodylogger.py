@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+### Body Logger
+
 import click # need colorama for colors
 import sqlite3
 import datetime
@@ -12,11 +14,13 @@ now = datetime.datetime.now()
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+# Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(version='0.0.1')
 def bodylogger():
     pass
 
+# Add
 @bodylogger.command()
 @click.argument('user')
 @click.option('--date', default=now.strftime("%Y-%m-%d"))
@@ -28,9 +32,11 @@ def add(user, date, weight):
     # Create table if doesn't exist
     c.execute("CREATE TABLE IF NOT EXISTS records (date text, weight float)")
 
+    # Check for Date
     date_sql = (date,)
     c.execute("SELECT date FROM records WHERE date=?", date_sql)
     date_exists = c.fetchone()
+
     if date_exists is not None: # Update
         c.execute("UPDATE records SET weight=" + str(weight) + " WHERE date = '" + str(date) + "'")
         click.echo("[" + click.style('Updated', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", weight: " + str(weight))
@@ -41,8 +47,27 @@ def add(user, date, weight):
     conn.commit()
     conn.close()
 
+#Delete
+@bodylogger.command()
+@click.argument('user')
+@click.option('--date', prompt="What day ould you like to delete (YYYY-mm-dd)")
+def deleterecord(user, date):
+    conn = sqlite3.connect('users/' + str(user) + '.db')
+    c = conn.cursor()
 
+    date_sql = (date,)
+    c.execute("SELECT date FROM records WHERE date=?", date_sql)
+    date_exists = c.fetchone()
+    if date_exists is not None:
+        c.execute("DELETE FROM records WHERE date = '" + str(date) + "'")
+        click.echo("[" + click.style('DELETED', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date))
+    else:
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Record with that date does not exist")
 
+    conn.commit()
+    conn.close()
+
+# Stats
 @bodylogger.command()
 @click.argument('user')
 def stats(user):
@@ -147,5 +172,6 @@ def stats(user):
 
     conn.close()
 
+# Main
 if __name__ == '__main__':
     bodylogger()
