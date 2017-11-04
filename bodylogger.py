@@ -5,6 +5,7 @@
 import click # need colorama for colors
 import sqlite3
 import datetime
+import os
 import numpy as np
 import pandas as pd
 
@@ -47,7 +48,7 @@ def add(user, date, weight):
     conn.commit()
     conn.close()
 
-#Delete
+#Deleterecord
 @bodylogger.command()
 @click.argument('user')
 @click.option('--date', prompt="What day ould you like to delete (YYYY-mm-dd)")
@@ -67,12 +68,44 @@ def deleterecord(user, date):
     conn.commit()
     conn.close()
 
+@bodylogger.command()
+@click.argument('user')
+def deleteuser(user):
+
+    user_db = "users/" + str(user) + '.db'
+
+    if os.path.isfile(user_db):
+        os.remove(user_db)
+        click.echo("[" + click.style('DELETED USER', fg='green', bold=True) + "] - user: " + str(user))
+    else:
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User does not exist")
+
+
+# list
+@bodylogger.command()
+@click.argument('user')
+@click.option('--n', default=7)
+def list(user, n):
+    conn = sqlite3.connect('users/' + str(user) + '.db')
+    c = conn.cursor()
+
+    click.echo("[" + click.style("DISPLAYING LAST " + str(n) + " RECORDS", fg='green') + "]")
+
+    n = (n,)
+    for row in c.execute('SELECT * FROM records ORDER BY date DESC LIMIT ?', n):
+        click.echo(str(row[0]) + ": " + str(row[1]))
+
+    conn.commit()
+    conn.close()
+
 # Stats
 @bodylogger.command()
 @click.argument('user')
 def stats(user):
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
+
+    click.echo("[" + click.style("BODY STATISTICS FOR USER - " + str(user), fg='green') + "]")
 
     # Total Weight lost
     records = []
