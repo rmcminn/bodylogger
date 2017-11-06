@@ -6,10 +6,10 @@ import click # need colorama for colors
 import sqlite3
 import datetime
 import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-# Needs gnuplot install from arch
 
 from statsmodels.tsa.arima_model import ARIMA
 
@@ -19,16 +19,25 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.3.0')
+@click.version_option(version='0.4.0')
 def bodylogger():
+    """
+    Maintains a user database of personal measurements while giving
+    stats and predictions based on trends.
+    """
     pass
 
 # Add
 @bodylogger.command()
 @click.argument('user')
-@click.option('--date', default=now.strftime("%Y-%m-%d"))
-@click.option('--weight', type=float, help='weight to log')
+@click.option('-d', '--date', default=now.strftime("%Y-%m-%d"), help="Specify date to add record (Default: Today)")
+@click.option('-w', '--weight', type=float, prompt="Enter in weight", help='Weight to log')
 def add(user, date, weight):
+    """
+    Adds a record for a specific date
+    """
+
+
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -53,8 +62,12 @@ def add(user, date, weight):
 #Deleterecord
 @bodylogger.command()
 @click.argument('user')
-@click.option('--date', prompt="What day ould you like to delete (YYYY-mm-dd)")
-def deleterecord(user, date):
+@click.option('-d', '--date', prompt="What day would you like to delete (YYYY-mm-dd)", help="Specify date to delete record")
+def delete(user, date):
+    """
+    Deletes a record for a specific date
+    """
+
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -73,6 +86,9 @@ def deleterecord(user, date):
 @bodylogger.command()
 @click.argument('user')
 def deleteuser(user):
+    """
+    Deletes a user database
+    """
 
     user_db = "users/" + str(user) + '.db'
 
@@ -86,8 +102,12 @@ def deleteuser(user):
 # list
 @bodylogger.command()
 @click.argument('user')
-@click.option('--n', default=7)
+@click.option('-n', default=7, help="Number of past records to show (Default: 7)")
 def list(user, n):
+    """
+    Lists records
+    """
+
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -104,6 +124,10 @@ def list(user, n):
 @bodylogger.command()
 @click.argument('user')
 def stats(user):
+    """
+    Gives user stats and predictions
+    """
+
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -221,7 +245,12 @@ def stats(user):
 # Plot
 @bodylogger.command()
 @click.argument('user')
-def plot(user):
+@click.option('-o', '--output', default=False, help="Specify output filename")
+def plot(user, output):
+    """
+    Plots records
+    """
+
     conn = sqlite3.connect('users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -281,7 +310,7 @@ def plot(user):
     ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
     ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
 
-    ax.set(xlabel='Date', ylabel='Weight (lbs.)',
+    ax.set(xlabel='Date', ylabel='Weight',
            title='Weight over Time - ' + str(user) + " (Generated: " + str(records[-1][0]) + ")")
     # Now add the legend with some customizations.
     legend = ax.legend(loc='upper right')
@@ -297,7 +326,12 @@ def plot(user):
     for label in legend.get_lines():
             label.set_linewidth(1.5)  # the legend line width
     ax.grid()
-    plt.show()
+
+    if output:
+        fig.set_size_inches(12,10)
+        fig.savefig(output)
+    else:
+        plt.show()
 
 
 
