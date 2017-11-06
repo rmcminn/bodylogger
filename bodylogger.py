@@ -8,6 +8,8 @@ import datetime
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+# Needs gnuplot install from arch
 
 from statsmodels.tsa.arima_model import ARIMA
 
@@ -17,7 +19,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.0.1')
+@click.version_option(version='0.3.0')
 def bodylogger():
     pass
 
@@ -107,10 +109,12 @@ def stats(user):
 
     click.echo("[" + click.style("BODY STATISTICS FOR USER - " + str(user), fg='green') + "]")
 
-    # Total Weight lost
+    # Current Weight and Total Weight lost
     records = []
     for row in c.execute('SELECT * FROM records ORDER BY date'):
         records.append(row)
+
+    click.echo("\nCurrent Weight: " + str(records[-1][1]) + " ( " + str(records[-1][0]) + " )")
 
     total_weight_lost = round(records[-1][1] - records[0][1], 1)
     if total_weight_lost < 0:
@@ -126,20 +130,23 @@ def stats(user):
     weights = pd.DataFrame([row[1] for row in records])
 
     # Calculatations
-    ema_90 = weights.ewm(span=90).mean().iloc[-1].values[0]
-    ema_30 = weights.ewm(span=30).mean().iloc[-1].values[0]
-    ema_7 = weights.ewm(span=7).mean().iloc[-1].values[0]
+    stddev = np.std(weights)[0]
+    sem = stddev / np.sqrt(len(weights))
+
+    ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
+    ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
+    ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
 
     model = ARIMA(records_df, order=(1,0,0))
     model_fit = model.fit(disp=0)
 
     ARIMA_30 = model_fit.forecast(30)
-    predict_ARIMA_30 = ARIMA_30[0][-1]
-    conf_ARIMA_30 = ARIMA_30[2][-1]
+    predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
+    conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
 
     ARIMA_7 = model_fit.forecast(7)
-    predict_ARIMA_7 = ARIMA_7[0][-1]
-    conf_ARIMA_7 = ARIMA_7[2][-1]
+    predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
+    conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
 
     # Weight Lost in Past 90 Days
     records = []
@@ -189,6 +196,12 @@ def stats(user):
         else:
             click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
 
+    # Standard Deviation and Standard Error
+    click.echo("\n1 Sigma: " + str(np.round(stddev,1)) + " (68%)")
+    click.echo("2 Sigma: " + str(np.round(stddev*2,1)) + " (95%)")
+    click.echo("3 Sigma: " + str(np.round(stddev*3,1)) + " (99.7%)")
+    click.echo("SEM: " + str(np.round(sem, 1)))
+
     # EMA
     click.echo('\nEMA 90: ' + str(ema_90))
     click.echo('EMA 30: ' + str(ema_30))
@@ -204,6 +217,90 @@ def stats(user):
     click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
 
     conn.close()
+
+# Plot
+@bodylogger.command()
+@click.argument('user')
+def plot(user):
+    conn = sqlite3.connect('users/' + str(user) + '.db')
+    c = conn.cursor()
+
+    # Current Weight and Total Weight lost
+    records = []
+    for row in c.execute('SELECT * FROM records ORDER BY date'):
+        records.append(row)
+
+    # DataFrames for Calculations
+    records_df = pd.DataFrame(records, columns=['date','weight'])
+    records_df['date'] = pd.to_datetime(records_df['date'])
+    records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
+    records_df = records_df.set_index('date')
+
+    # EMA
+    ema_90_plot = records_df.ewm(span=90).mean()
+    ema_30_plot = records_df.ewm(span=30).mean()
+    ema_7_plot = records_df.ewm(span=7).mean()
+
+    # ARIMA
+    model = ARIMA(records_df, order=(1,0,0))
+    model_fit = model.fit(disp=0)
+    ARIMA_30 = model_fit.forecast(30)
+    ARIMA_7 = model_fit.forecast(7)
+
+    # ARIMA 30
+    start = pd.to_datetime(records[-1][0])
+    step = datetime.timedelta(days=1)
+    start += step # Start tomorrow
+
+    result30 = []
+    count = 0
+    while count < len(ARIMA_30[0]):
+        result30.append(start.strftime('%Y-%m-%d'))
+        start += step
+        count += 1
+
+    # ARIMA 7
+    start = pd.to_datetime(records[-1][0])
+    step = datetime.timedelta(days=1)
+    start += step # Start tomorrow
+
+    result7 = []
+    count = 0
+    while count < len(ARIMA_7[0]):
+        result7.append(start.strftime('%Y-%m-%d'))
+        start += step
+        count += 1
+
+
+    # Plots
+    fig, ax = plt.subplots()
+    ax.plot(records_df, "b-", label='Weight')
+    ax.plot(ema_90_plot, "r-", label='EMA 90')
+    ax.plot(ema_30_plot, "y-", label='EMA 30')
+    ax.plot(ema_7_plot, "g-", label='EMA 7')
+    ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
+    ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
+
+    ax.set(xlabel='Date', ylabel='Weight (lbs.)',
+           title='Weight over Time - ' + str(user) + " (Generated: " + str(records[-1][0]) + ")")
+    # Now add the legend with some customizations.
+    legend = ax.legend(loc='upper right')
+
+    # The frame is matplotlib.patches.Rectangle instance surrounding the legend.
+    frame = legend.get_frame()
+    frame.set_facecolor('0.90')
+
+    # Set the fontsize
+    for label in legend.get_texts():
+        label.set_fontsize('large')
+
+    for label in legend.get_lines():
+            label.set_linewidth(1.5)  # the legend line width
+    ax.grid()
+    plt.show()
+
+
+
 
 # Main
 if __name__ == '__main__':

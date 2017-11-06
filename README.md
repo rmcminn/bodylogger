@@ -1,4 +1,4 @@
-# bodylogger 0.0.1
+# bodylogger 0.3.0
 
 
 
@@ -56,16 +56,13 @@ Explain what these tests test and why
 Give an example
 ```
 
-## Deployment (TODO)
-
-Add additional notes about how to deploy this on a live system
-
 ## Built With
 
 * [Pandas](http://pandas.pydata.org/) - Used for measurement projections
 * [StatsModels](http://www.statsmodels.org/stable/index.html) - Used for measurement projections
 * [Click](http://click.pocoo.org/5/) - CLI Framework
 * [sqlite3](https://www.sqlite.org/) - Database for user data
+* [matplotlib](https://matplotlib.org/) - plotting
 
 ## Contributing (TODO)
 
