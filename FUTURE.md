@@ -10,6 +10,7 @@
 0.3.0 [X] - std. err
 0.3.0 [X] - round results
 	  [ ] - Output Option for plot
+	  [ ] - Better user management
 
 # Bugs
 	  [ ] - statsmodels FutureWarning
