@@ -1,5 +1,8 @@
-# Features
+# Todo
+[ ] - Github Page w/ how-to
+[ ] - AUR
 
+# Features
 
       [ ] - implement setuptools
       [ ] - date checking and conversion
