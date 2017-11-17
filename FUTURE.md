@@ -1,6 +1,7 @@
 # Todo
 [ ] - Github Page w/ how-to
 [ ] - AUR
+[ ] - tk needs to be installed as well
 
 # Features
 
@@ -18,4 +19,5 @@
 0.2.0 [X] - deleteuser command
 
 # Bugs
-	  [ ] - statsmodels FutureWarning
+	[ ] - statsmodels FutureWarning
+	[ ] - plot no displaying right in Gnome
