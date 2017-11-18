@@ -10,8 +10,9 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima_model import ARIMA # need version higher than 0.8.0 to remove future warning
 
 now = datetime.datetime.now()
 
@@ -19,7 +20,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.4.0')
+@click.version_option(version='0.4.1')
 def bodylogger():
     """
     Maintains a user database of personal measurements while giving
@@ -261,7 +262,7 @@ def plot(user, output):
 
     # DataFrames for Calculations
     records_df = pd.DataFrame(records, columns=['date','weight'])
-    records_df['date'] = pd.to_datetime(records_df['date'])
+    #records_df['date'] = pd.to_datetime(records_df['date'])
     records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
     records_df = records_df.set_index('date')
 
@@ -299,8 +300,7 @@ def plot(user, output):
         result7.append(start.strftime('%Y-%m-%d'))
         start += step
         count += 1
-
-
+        
     # Plots
     fig, ax = plt.subplots()
     ax.plot(records_df, "b-", label='Weight')
@@ -325,8 +325,15 @@ def plot(user, output):
 
     for label in legend.get_lines():
             label.set_linewidth(1.5)  # the legend line width
-    ax.grid()
 
+    # Only show every nth label
+    n = 7
+    [l.set_visible(False) for (i,l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]
+
+    # Rotate label 90 degree and turn on grid
+    plt.xticks(rotation=90, size='x-small')
+    plt.grid()
+    
     if output:
         fig.set_size_inches(12,10)
         fig.savefig(output)

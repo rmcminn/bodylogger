@@ -19,5 +19,5 @@
 0.2.0 [X] - deleteuser command
 
 # Bugs
-	[ ] - statsmodels FutureWarning
-	[ ] - plot no displaying right in Gnome
+      [ ] - statsmodels FutureWarning
+0.4.1 [X] - plot not displaying right in Gnome
