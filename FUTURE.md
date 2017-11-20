@@ -5,9 +5,11 @@
 
 # Features
 
-      [ ] - implement setuptools
+0.5.0 [X] - implement setuptools
       [ ] - date checking and conversion
-      [ ] - Better user management
+0.5.0 [ ] - Better user management + User creation
+      [ ] - line options for plotting
+      [ ] - ARIMA options 
 0.4.0 [X] - Flesh out help
 0.4.0 [X] - Output Option for plot
 0.3.0 [X] - Std. Dev. (1 to 3 sigma)

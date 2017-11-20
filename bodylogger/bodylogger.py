@@ -14,6 +14,8 @@ import matplotlib.dates as mdates
 
 from statsmodels.tsa.arima_model import ARIMA # need version higher than 0.8.0 to remove future warning
 
+_ROOT = os.path.abspath(os.path.dirname(__file__))
+
 now = datetime.datetime.now()
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -38,8 +40,7 @@ def add(user, date, weight):
     Adds a record for a specific date
     """
 
-
-    conn = sqlite3.connect('users/' + str(user) + '.db')
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
     # Create table if doesn't exist
@@ -60,7 +61,7 @@ def add(user, date, weight):
     conn.commit()
     conn.close()
 
-#Deleterecord
+# Deleterecord
 @bodylogger.command()
 @click.argument('user')
 @click.option('-d', '--date', prompt="What day would you like to delete (YYYY-mm-dd)", help="Specify date to delete record")
@@ -69,7 +70,7 @@ def delete(user, date):
     Deletes a record for a specific date
     """
 
-    conn = sqlite3.connect('users/' + str(user) + '.db')
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
     date_sql = (date,)
@@ -91,7 +92,7 @@ def deleteuser(user):
     Deletes a user database
     """
 
-    user_db = "users/" + str(user) + '.db'
+    user_db = _ROOT + "/users/" + str(user) + '.db'
 
     if os.path.isfile(user_db):
         os.remove(user_db)
@@ -109,7 +110,7 @@ def list(user, n):
     Lists records
     """
 
-    conn = sqlite3.connect('users/' + str(user) + '.db')
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
     click.echo("[" + click.style("DISPLAYING LAST " + str(n) + " RECORDS", fg='green') + "]")
@@ -129,7 +130,7 @@ def stats(user):
     Gives user stats and predictions
     """
 
-    conn = sqlite3.connect('users/' + str(user) + '.db')
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
     click.echo("[" + click.style("BODY STATISTICS FOR USER - " + str(user), fg='green') + "]")
@@ -252,7 +253,7 @@ def plot(user, output):
     Plots records
     """
 
-    conn = sqlite3.connect('users/' + str(user) + '.db')
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
     # Current Weight and Total Weight lost
