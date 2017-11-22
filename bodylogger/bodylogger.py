@@ -12,9 +12,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
+from pathlib import Path
+
 from statsmodels.tsa.arima_model import ARIMA # need version higher than 0.8.0 to remove future warning
 
-_ROOT = os.path.abspath(os.path.dirname(__file__))
+_ROOT = str(Path.home()) + '/.bodylogger'
 
 now = datetime.datetime.now()
 
@@ -109,7 +111,7 @@ def list(user, n):
     """
     Lists records
     """
-
+    print(_ROOT + '/users/' + str(user) + '.db')
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
