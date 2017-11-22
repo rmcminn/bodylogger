@@ -32,7 +32,7 @@ To uninstall, simply run:
 make uninstall
 ```
 
-**WARNING**: This is uninstall user database files as well. Backup `~/.bodylogger/users` if you want to retain these files.
+**WARNING**: This will uninstall user database files as well. Backup `~/.bodylogger/users` if you want to retain these files.
 
 
 ## Running the tests (TODO)
