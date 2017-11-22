@@ -2,35 +2,38 @@
 
 Command line app that logs body weight and other personal measurements.
 
-## Getting Started (TODO)
+## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+### Prerequisites
 
-### Prerequisites (TODO)
+You'll need to install tkinter, pip, and setuptools
 
-What things you need to install the software and how to install them
+#### Arch
 
-```
-Give examples
-```
-
-### Installing (TODO)
-
-A step by step series of examples that tell you have to get a development env running
-
-Say what the step will be
-
-```
-Give the example
+```bash
+sudo pacman -S tk python-pip && sudo pip install setuptools
 ```
 
-And repeat
+### Installing
 
-```
-until finished
+#### Manual Installation
+
+Download the latest release tarball, and unzip - Then run:
+
+```bash
+make install
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+This will install bodylogger and the need python prerequisites from pip.
+
+To Uninstall, simply run:
+
+```bash
+make uninstall
+```
+
+**WARNING**: This is uninstall user database files as well. Backup `~/.bodylogger/users` if you want to retain these files.
+
 
 ## Running the tests (TODO)
 
