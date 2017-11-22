@@ -10,7 +10,7 @@ uninstall:
 	sudo pip uninstall bodylogger
 
 clean:
-	sudo rm -rf build dist
+	sudo rm -rf build dist bodylogger.egg-info
 
 test:
 	python -m unittest bodylogger/tests/*.py -v
