@@ -6,7 +6,7 @@ Command line app that logs body weight and other personal measurements.
 
 ### Prerequisites
 
-You'll need to install tkinter, pip, and setuptools
+You'll need to install tkinter, pip, and setuptools.
 
 #### Arch
 
@@ -18,15 +18,15 @@ sudo pacman -S tk python-pip && sudo pip install setuptools
 
 #### Manual Installation
 
-Download the latest release tarball, and unzip - Then run:
+Download the latest release tarball from [here](https://github.com/rmcminn/bodylogger/releases), and unzip - Then run:
 
 ```bash
 make install
 ```
 
-This will install bodylogger and the need python prerequisites from pip.
+This will install bodylogger and the needed python prerequisites from pip.
 
-To Uninstall, simply run:
+To uninstall, simply run:
 
 ```bash
 make uninstall
@@ -63,17 +63,13 @@ Give an example
 * [sqlite3](https://www.sqlite.org/) - Database for user data
 * [matplotlib](https://matplotlib.org/) - plotting
 
-## Contributing (TODO)
-
-Please read [CONTRIBUTING.md](#) for details on our code of conduct, and the process for submitting pull requests to us.
-
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/rmcminn/bodylogger/tags).
 
 ## Authors
 
-* **Ryder McMinn** - *Initial work* - [rmcminn](https://github.com/rmcminn)
+* **Ryder McMinn** - *Creator / Maintainer* - [rmcminn](https://github.com/rmcminn)
 
 ## License
 
