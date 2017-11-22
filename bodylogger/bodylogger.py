@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from pathlib import Path
+from os import listdir
+from os.path import isfile, join
 
 from statsmodels.tsa.arima_model import ARIMA # need version higher than 0.8.0 to remove future warning
 
@@ -22,15 +24,37 @@ now = datetime.datetime.now()
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+# ===========================================================================================================
+# Utility Functions
+# ===========================================================================================================
+def is_user(user):
+    
+    files = [f for f in listdir(_ROOT + '/users/') if isfile(join(_ROOT + '/users/', f))]
+    users = [s.split('.')[0] for s in files]
+
+    if not users: # List is empty
+        return False
+
+    if user in users:
+        return True
+    else:
+        return False
+
+    
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.4.1')
+@click.version_option(version='0.5.0')
 def bodylogger():
     """
     Maintains a user database of personal measurements while giving
     stats and predictions based on trends.
     """
     pass
+
+
+# ===========================================================================================================
+# Record Commands
+# ===========================================================================================================
 
 # Add
 @bodylogger.command()
@@ -41,12 +65,14 @@ def add(user, date, weight):
     """
     Adds a record for a specific date
     """
-
+    
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
-
-    # Create table if doesn't exist
-    c.execute("CREATE TABLE IF NOT EXISTS records (date text, weight float)")
 
     # Check for Date
     date_sql = (date,)
@@ -72,6 +98,11 @@ def delete(user, date):
     Deletes a record for a specific date
     """
 
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -87,21 +118,6 @@ def delete(user, date):
     conn.commit()
     conn.close()
 
-@bodylogger.command()
-@click.argument('user')
-def deleteuser(user):
-    """
-    Deletes a user database
-    """
-
-    user_db = _ROOT + "/users/" + str(user) + '.db'
-
-    if os.path.isfile(user_db):
-        os.remove(user_db)
-        click.echo("[" + click.style('DELETED USER', fg='green', bold=True) + "] - user: " + str(user))
-    else:
-        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User does not exist")
-
 
 # list
 @bodylogger.command()
@@ -111,7 +127,11 @@ def list(user, n):
     """
     Lists records
     """
-    print(_ROOT + '/users/' + str(user) + '.db')
+        # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -131,7 +151,12 @@ def stats(user):
     """
     Gives user stats and predictions
     """
-
+    
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -255,6 +280,11 @@ def plot(user, output):
     Plots records
     """
 
+        # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -344,6 +374,70 @@ def plot(user, output):
         plt.show()
 
 
+# ==========================================================================================================
+# User Commands
+# ==========================================================================================================
+
+@bodylogger.command()
+@click.argument('user')
+def createuser(user):
+    """
+    Creates a user database
+    """
+
+    # Check to see if it already exists
+    if is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - " + str(user) + " is already a user.")
+        return 1
+
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
+    c = conn.cursor()
+
+    # Create table if doesn't exist
+    c.execute("CREATE TABLE IF NOT EXISTS records (date text, weight float)")
+
+    conn.commit()
+    click.echo("[" + click.style('CREATED USER', fg='green', bold=True) + "] - user: " + str(user))
+            
+    conn.close()
+    
+
+@bodylogger.command()
+def listusers():
+    """
+    Lists user databases
+    """
+
+    files = [f for f in listdir(_ROOT + '/users/') if isfile(join(_ROOT + '/users/', f))]
+    users = [s.split('.')[0] for s in files]
+
+    click.echo("[" + click.style("USER LIST", fg='green') + "]")
+    if not users: # List is empty
+        click.echo("No users found. See command 'createuser' to initialize.")
+    else:
+        for u in users:
+            click.echo(u)
+
+            
+@bodylogger.command()
+@click.argument('user')
+def deleteuser(user):
+    """
+    Deletes a user database
+    """
+
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+    
+    user_db = _ROOT + "/users/" + str(user) + '.db'
+
+    if os.path.isfile(user_db):
+        os.remove(user_db)
+        click.echo("[" + click.style('DELETED USER', fg='green', bold=True) + "] - user: " + str(user))
+    else:
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User does not exist")
 
 
 # Main

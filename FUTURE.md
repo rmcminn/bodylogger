@@ -9,7 +9,7 @@
       [ ] - ARIMA options
       [ ] - unittests
 0.5.0 [X] - implement setuptools
-0.5.0 [ ] - Better user management + User creation
+0.5.0 [X] - Better user management + User creation
 0.4.0 [X] - Flesh out help
 0.4.0 [X] - Output Option for plot
 0.3.0 [X] - Std. Dev. (1 to 3 sigma)
