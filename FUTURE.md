@@ -22,6 +22,6 @@
 
 # Bugs
       [ ] - Uninstall throws FileNotFoundError, even though it has successfully uninstalled
-      [ ] - Can't do ARIMA with one value
-      [ ] - statsmodels FutureWarning
+0.5.1 [X] - Can't do ARIMA with one value
+0.5.1 [X] - statsmodels FutureWarning
 0.4.1 [X] - plot not displaying right in Gnome
