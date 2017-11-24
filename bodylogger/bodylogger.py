@@ -6,6 +6,7 @@ import click # need colorama for colors
 import sqlite3
 import datetime
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -16,7 +17,11 @@ from pathlib import Path
 from os import listdir
 from os.path import isfile, join
 
-from statsmodels.tsa.arima_model import ARIMA # need version higher than 0.8.0 to remove future warning
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    # need version higher than 0.8.0 to remove future warning
+    # 0.8.0 is highest in pip as of 11-24-2017
+    from statsmodels.tsa.arima_model import ARIMA
 
 _ROOT = str(Path.home()) + '/.bodylogger'
 
@@ -171,9 +176,9 @@ def stats(user):
 
     total_weight_lost = round(records[-1][1] - records[0][1], 1)
     if total_weight_lost < 0:
-        click.echo('Total Weight Lost: ' + click.style(str(total_weight_lost), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
+        click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
     else:
-        click.echo('Total Weight Lost: ' + click.style(str(total_weight_lost), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
+        click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
 
     # DataFrames for Calculations
     records_df = pd.DataFrame(records, columns=['date','weight'])
@@ -181,25 +186,6 @@ def stats(user):
     records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
     records_df = records_df.set_index('date')
     weights = pd.DataFrame([row[1] for row in records])
-
-    # Calculatations
-    stddev = np.std(weights)[0]
-    sem = stddev / np.sqrt(len(weights))
-
-    ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
-    ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
-    ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
-
-    model = ARIMA(records_df, order=(1,0,0))
-    model_fit = model.fit(disp=0)
-
-    ARIMA_30 = model_fit.forecast(30)
-    predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
-    conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
-
-    ARIMA_7 = model_fit.forecast(7)
-    predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
-    conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
 
     # Weight Lost in Past 90 Days
     records = []
@@ -250,24 +236,49 @@ def stats(user):
             click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
 
     # Standard Deviation and Standard Error
-    click.echo("\n1 Sigma: " + str(np.round(stddev,1)) + " (68%)")
-    click.echo("2 Sigma: " + str(np.round(stddev*2,1)) + " (95%)")
-    click.echo("3 Sigma: " + str(np.round(stddev*3,1)) + " (99.7%)")
-    click.echo("SEM: " + str(np.round(sem, 1)))
+    if len(records_df) > 1: # Can't calculate much on 1 record
+        stddev = np.std(weights)[0]
+        sem = stddev / np.sqrt(len(weights))
 
-    # EMA
-    click.echo('\nEMA 90: ' + str(ema_90))
-    click.echo('EMA 30: ' + str(ema_30))
-    click.echo('EMA  7: ' + str(ema_7))
+        click.echo("\n1 Sigma: " + str(np.round(stddev,1)) + " (68%)")
+        click.echo("2 Sigma: " + str(np.round(stddev*2,1)) + " (95%)")
+        click.echo("3 Sigma: " + str(np.round(stddev*3,1)) + " (99.7%)")
+        click.echo("SEM: " + str(np.round(sem, 1)))
 
-    if ema_30 < ema_7:
-        click.secho("** WARNING 7 DAY EMA IS HIGHER THAN 30 DAY -- INDICATES AN UPWARD WEIGHT TREND", fg='red')
-    if ema_90 < ema_30:
-        click.secho("** WARNING 30 DAY EMA IS HIGHER THAN 90 DAY -- INDICATES AN PROLONGED UPWARD WEIGHT TREND", fg='red')
+        # EMA
+        ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
+        ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
+        ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
+        
+        click.echo('\nEMA 90: ' + str(ema_90))
+        click.echo('EMA 30: ' + str(ema_30))
+        click.echo('EMA  7: ' + str(ema_7))
 
+        if ema_30 < ema_7:
+            click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 7 Day EMA is higher than 30 day -- Indicates an upward trend.")
+        if ema_90 < ema_30:
+            click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 30 Day EMA is higher than 90 day -- Indicates a prolonged upward trend.")
+    else:
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
+        
     # ARIMA
-    click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_ARIMA_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_30) + " -> " + click.style(str(conf_ARIMA_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-    click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+    if len(records_df) > 4: # make sure there is enough degrees of freedom
+              model = ARIMA(records_df, order=(4,1,0))
+              model_fit = model.fit(disp=0)
+              
+              ARIMA_30 = model_fit.forecast(30)
+              predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
+              conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
+
+              ARIMA_7 = model_fit.forecast(7)
+              predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
+              conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
+              
+              click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_ARIMA_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_30) + " -> " + click.style(str(conf_ARIMA_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+              click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+    else:
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
+
 
     conn.close()
 
@@ -280,7 +291,7 @@ def plot(user, output):
     Plots records
     """
 
-        # Check for user
+    # Check for user
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
         return 1
@@ -305,34 +316,37 @@ def plot(user, output):
     ema_7_plot = records_df.ewm(span=7).mean()
 
     # ARIMA
-    model = ARIMA(records_df, order=(1,0,0))
-    model_fit = model.fit(disp=0)
-    ARIMA_30 = model_fit.forecast(30)
-    ARIMA_7 = model_fit.forecast(7)
+    if len(records_df) > 4: # Make sure there is enough degrees of freedom
+        model = ARIMA(records_df, order=(4,1,0))
+        model_fit = model.fit(disp=0)
+        ARIMA_30 = model_fit.forecast(30)
+        ARIMA_7 = model_fit.forecast(7)
 
-    # ARIMA 30
-    start = pd.to_datetime(records[-1][0])
-    step = datetime.timedelta(days=1)
-    start += step # Start tomorrow
+        # ARIMA 30
+        start = pd.to_datetime(records[-1][0])
+        step = datetime.timedelta(days=1)
+        start += step # Start tomorrow
 
-    result30 = []
-    count = 0
-    while count < len(ARIMA_30[0]):
-        result30.append(start.strftime('%Y-%m-%d'))
-        start += step
-        count += 1
+        result30 = []
+        count = 0
+        while count < len(ARIMA_30[0]):
+            result30.append(start.strftime('%Y-%m-%d'))
+            start += step
+            count += 1
 
-    # ARIMA 7
-    start = pd.to_datetime(records[-1][0])
-    step = datetime.timedelta(days=1)
-    start += step # Start tomorrow
+        # ARIMA 7
+        start = pd.to_datetime(records[-1][0])
+        step = datetime.timedelta(days=1)
+        start += step # Start tomorrow
 
-    result7 = []
-    count = 0
-    while count < len(ARIMA_7[0]):
-        result7.append(start.strftime('%Y-%m-%d'))
-        start += step
-        count += 1
+        result7 = []
+        count = 0
+        while count < len(ARIMA_7[0]):
+            result7.append(start.strftime('%Y-%m-%d'))
+            start += step
+            count += 1
+    else:
+        click.echo("[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
         
     # Plots
     fig, ax = plt.subplots()
@@ -340,8 +354,10 @@ def plot(user, output):
     ax.plot(ema_90_plot, "r-", label='EMA 90')
     ax.plot(ema_30_plot, "y-", label='EMA 30')
     ax.plot(ema_7_plot, "g-", label='EMA 7')
-    ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
-    ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
+
+    if len(records_df) > 4: # Make sure there is enough degrees of freedom
+        ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
+        ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
 
     ax.set(xlabel='Date', ylabel='Weight',
            title='Weight over Time - ' + str(user) + " (Generated: " + str(records[-1][0]) + ")")
