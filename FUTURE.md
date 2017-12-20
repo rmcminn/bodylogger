@@ -4,10 +4,15 @@
 [ ] - tk needs to be installed as well
 
 # Features
+      [ ] - date checking and conversion
       [ ] - line options for plotting
       [ ] - ARIMA options
+<<<<<<< HEAD
 0.6.0 [ ] - unittests
 0.6.0 [X] - date checking
+=======
+      [ ] - unittests
+>>>>>>> dc57f0a5414af069f2e9c09702a8098cd05a2f90
 0.5.0 [X] - implement setuptools
 0.5.0 [X] - Better user management + User creation
 0.4.0 [X] - Flesh out help

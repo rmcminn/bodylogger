@@ -14,6 +14,11 @@ You'll need to install tkinter, pip, and setuptools.
 sudo pacman -S tk python-pip && sudo pip install setuptools
 ```
 
+Some systems require an additional library to support terminal colors.
+```bash
+sudo pip install colorama
+```
+
 ### Installing
 
 #### Manual Installation
@@ -62,6 +67,15 @@ Give an example
 * [Click](http://click.pocoo.org/5/) - CLI Framework
 * [sqlite3](https://www.sqlite.org/) - Database for user data
 * [matplotlib](https://matplotlib.org/) - plotting
+<<<<<<< HEAD
+=======
+
+## Contributing
+
+All development is done via [dev](https://github.com/rmcminn/bodylogger/tree/dev) branch, then merged to master upon release.
+
+Please point all pull requests to the [dev](https://github.com/rmcminn/bodylogger/tree/dev) branch.
+>>>>>>> dc57f0a5414af069f2e9c09702a8098cd05a2f90
 
 ## Versioning
 
