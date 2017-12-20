@@ -40,7 +40,7 @@ make uninstall
 **WARNING**: This will uninstall user database files as well. Backup `~/.bodylogger/users` if you want to retain these files.
 
 
-## Running the tests (TODO)
+## Testing
 
 We use [nose](http://nose.readthedocs.io/en/latest/) for our tests
 

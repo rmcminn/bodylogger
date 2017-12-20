@@ -67,12 +67,6 @@ def bodylogger():
     """
     pass
 
-
-@bodylogger.command()
-@click.argument('date_string')
-def datetest(date_string):
-    print(check_date(date_string))
-
 # ===========================================================================================================
 # Record Commands
 # ===========================================================================================================
