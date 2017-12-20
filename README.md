@@ -37,23 +37,20 @@ make uninstall
 
 ## Running the tests (TODO)
 
-Explain how to run the automated tests for this system
+We use [nose](http://nose.readthedocs.io/en/latest/) for our tests
 
-### Break down into end to end tests (TODO)
-
-Explain what these tests test and why
-
-```
-Give an example
+To install, simply run:
+```bash
+sudo pip install nose
 ```
 
-### And coding style tests (TODO)
+and then to test, run:
 
-Explain what these tests test and why
+```bash
+make test
+```
 
-```
-Give an example
-```
+tests are located in `/bodylogger/tests`
 
 ## Built With
 
@@ -61,7 +58,7 @@ Give an example
 * [StatsModels](http://www.statsmodels.org/stable/index.html) - Used for measurement projections
 * [Click](http://click.pocoo.org/5/) - CLI Framework
 * [sqlite3](https://www.sqlite.org/) - Database for user data
-* [matplotlib](https://matplotlib.org/) - plotting
+* [matplotlib](https://matplotlib.org/) - Plotting
 
 ## Versioning
 
