@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-### Body Logger
+# Body Logger
 
-import click # need colorama for colors
+import click  # need colorama for colors
 import sqlite3
 import datetime
 import os
@@ -32,12 +32,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 # ===========================================================================================================
 # Utility Functions
 # ===========================================================================================================
+
+
 def is_user(user):
-    
     files = [f for f in listdir(_ROOT + '/users/') if isfile(join(_ROOT + '/users/', f))]
     users = [s.split('.')[0] for s in files]
 
-    if not users: # List is empty
+    if not users:  # List is empty
         return False
 
     if user in users:
@@ -45,10 +46,20 @@ def is_user(user):
     else:
         return False
 
+def check_date(date_string):
+    try:
+        date = datetime.datetime.strptime(date_string, "%Y-%m-%d")
+        date = str(date.year) + '-' + str(date.month) + '-' + str(date.day)
+    except Exception:
+        return False
+
+    return date
     
+
+
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.5.1')
+@click.version_option(version='0.6.0')
 def bodylogger():
     """
     Maintains a user database of personal measurements while giving
@@ -57,34 +68,47 @@ def bodylogger():
     pass
 
 
+@bodylogger.command()
+@click.argument('date_string')
+def datetest(date_string):
+    print(check_date(date_string))
+
 # ===========================================================================================================
 # Record Commands
 # ===========================================================================================================
-
-# Add
 @bodylogger.command()
 @click.argument('user')
-@click.option('-d', '--date', default=now.strftime("%Y-%m-%d"), help="Specify date to add record (Default: Today)")
-@click.option('-w', '--weight', type=float, prompt="Enter in weight", help='Weight to log')
+@click.option('-d', '--date',
+              default=now.strftime("%Y-%m-%d"),
+              help="Specify date to add record (Default: Today)")
+@click.option('-w', '--weight',
+              type=float,
+              prompt="Enter in weight",
+              help='Weight to log')
 def add(user, date, weight):
     """
     Adds a record for a specific date
     """
-    
+
     # Check for user
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+
+    # Check for proper date format
+    if not check_date(date):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
         return 1
     
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
-    # Check for Date
+    # Check for date in db
     date_sql = (date,)
     c.execute("SELECT date FROM records WHERE date=?", date_sql)
     date_exists = c.fetchone()
 
-    if date_exists is not None: # Update
+    if date_exists is not None:  # Update
         c.execute("UPDATE records SET weight=" + str(weight) + " WHERE date = '" + str(date) + "'")
         click.echo("[" + click.style('Updated', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", weight: " + str(weight))
     else: # Add
@@ -97,7 +121,9 @@ def add(user, date, weight):
 # Deleterecord
 @bodylogger.command()
 @click.argument('user')
-@click.option('-d', '--date', prompt="What day would you like to delete (YYYY-mm-dd)", help="Specify date to delete record")
+@click.option('-d', '--date',
+              prompt="What day would you like to delete (YYYY-mm-dd)",
+              help="Specify date to delete record")
 def delete(user, date):
     """
     Deletes a record for a specific date
@@ -106,6 +132,11 @@ def delete(user, date):
     # Check for user
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+
+    # Check for proper date format
+    if not check_date(date):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
         return 1
     
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
@@ -127,12 +158,15 @@ def delete(user, date):
 # list
 @bodylogger.command()
 @click.argument('user')
-@click.option('-n', default=7, help="Number of past records to show (Default: 7)")
+@click.option('-n',
+              default=7,
+              help="Number of past records to show (Default: 7)")
 def list(user, n):
     """
     Lists records
     """
-        # Check for user
+
+    # Check for user
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
         return 1
@@ -149,14 +183,14 @@ def list(user, n):
     conn.commit()
     conn.close()
 
-# Stats
+
 @bodylogger.command()
 @click.argument('user')
 def stats(user):
     """
     Gives user stats and predictions
     """
-    
+
     # Check for user
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
@@ -262,30 +296,31 @@ def stats(user):
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
         
     # ARIMA
-    if len(records_df) > 4: # make sure there is enough degrees of freedom
-              model = ARIMA(records_df, order=(4,1,0))
-              model_fit = model.fit(disp=0)
-              
-              ARIMA_30 = model_fit.forecast(30)
-              predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
-              conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
+    if len(records_df) > 4:  # make sure there is enough degrees of freedom
+        model = ARIMA(records_df, order=(4, 1, 0))
+        model_fit = model.fit(disp=0)
 
-              ARIMA_7 = model_fit.forecast(7)
-              predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
-              conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
+        ARIMA_30 = model_fit.forecast(30)
+        predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
+        conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
+
+        ARIMA_7 = model_fit.forecast(7)
+        predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
+        conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
               
-              click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_ARIMA_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_30) + " -> " + click.style(str(conf_ARIMA_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-              click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+        click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_ARIMA_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_30) + " -> " + click.style(str(conf_ARIMA_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+        click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
     else:
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
 
-
     conn.close()
 
-# Plot
+
 @bodylogger.command()
 @click.argument('user')
-@click.option('-o', '--output', default=False, help="Specify output filename")
+@click.option('-o', '--output',
+              default=False,
+              help="Specify output filename")
 def plot(user, output):
     """
     Plots records
@@ -305,7 +340,7 @@ def plot(user, output):
         records.append(row)
 
     # DataFrames for Calculations
-    records_df = pd.DataFrame(records, columns=['date','weight'])
+    records_df = pd.DataFrame(records, columns=['date', 'weight'])
     #records_df['date'] = pd.to_datetime(records_df['date'])
     records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
     records_df = records_df.set_index('date')
@@ -316,8 +351,8 @@ def plot(user, output):
     ema_7_plot = records_df.ewm(span=7).mean()
 
     # ARIMA
-    if len(records_df) > 4: # Make sure there is enough degrees of freedom
-        model = ARIMA(records_df, order=(4,1,0))
+    if len(records_df) > 4:  # Make sure there is enough degrees of freedom
+        model = ARIMA(records_df, order=(4, 1, 0))
         model_fit = model.fit(disp=0)
         ARIMA_30 = model_fit.forecast(30)
         ARIMA_7 = model_fit.forecast(7)
@@ -325,7 +360,7 @@ def plot(user, output):
         # ARIMA 30
         start = pd.to_datetime(records[-1][0])
         step = datetime.timedelta(days=1)
-        start += step # Start tomorrow
+        start += step  # Start tomorrow
 
         result30 = []
         count = 0
@@ -337,7 +372,7 @@ def plot(user, output):
         # ARIMA 7
         start = pd.to_datetime(records[-1][0])
         step = datetime.timedelta(days=1)
-        start += step # Start tomorrow
+        start += step  # Start tomorrow
 
         result7 = []
         count = 0
@@ -347,7 +382,7 @@ def plot(user, output):
             count += 1
     else:
         click.echo("[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
-        
+
     # Plots
     fig, ax = plt.subplots()
     ax.plot(records_df, "b-", label='Weight')
@@ -355,7 +390,7 @@ def plot(user, output):
     ax.plot(ema_30_plot, "y-", label='EMA 30')
     ax.plot(ema_7_plot, "g-", label='EMA 7')
 
-    if len(records_df) > 4: # Make sure there is enough degrees of freedom
+    if len(records_df) > 4:  # Make sure there is enough degrees of freedom
         ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
         ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
 
@@ -382,9 +417,9 @@ def plot(user, output):
     # Rotate label 90 degree and turn on grid
     plt.xticks(rotation=90, size='x-small')
     plt.grid()
-    
+
     if output:
-        fig.set_size_inches(12,10)
+        fig.set_size_inches(12, 10)
         fig.savefig(output)
     else:
         plt.show()
@@ -428,13 +463,13 @@ def listusers():
     users = [s.split('.')[0] for s in files]
 
     click.echo("[" + click.style("USER LIST", fg='green') + "]")
-    if not users: # List is empty
+    if not users:  # List is empty
         click.echo("No users found. See command 'createuser' to initialize.")
     else:
         for u in users:
             click.echo(u)
 
-            
+
 @bodylogger.command()
 @click.argument('user')
 def deleteuser(user):
@@ -446,7 +481,7 @@ def deleteuser(user):
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
         return 1
-    
+
     user_db = _ROOT + "/users/" + str(user) + '.db'
 
     if os.path.isfile(user_db):

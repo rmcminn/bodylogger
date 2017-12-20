@@ -1,13 +1,13 @@
 # Todo
-[ ] - Github Page w/ how-to
 [ ] - AUR
-[ ] - tk needs to be installed as well
+[X] - Github Page w/ how-to
+[X] - tk needs to be installed as well
 
 # Features
-      [ ] - date checking and conversion
       [ ] - line options for plotting
       [ ] - ARIMA options
-      [ ] - unittests
+0.6.0 [X] - unittests
+0.6.0 [X] - date checking
 0.5.0 [X] - implement setuptools
 0.5.0 [X] - Better user management + User creation
 0.4.0 [X] - Flesh out help
