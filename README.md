@@ -4,21 +4,6 @@ Command line app that logs body weight and other personal measurements.
 
 ## Getting Started
 
-### Prerequisites
-
-You'll need to install tkinter, pip, and setuptools.
-
-#### Arch
-
-```bash
-sudo pacman -S tk python-pip && sudo pip install setuptools
-```
-
-Some systems require an additional library to support terminal colors.
-```bash
-sudo pip install colorama
-```
-
 ### Installing
 
 #### Manual Installation
@@ -26,7 +11,7 @@ sudo pip install colorama
 Download the latest release tarball from [here](https://github.com/rmcminn/bodylogger/releases), and unzip - Then run:
 
 ```bash
-make install
+./configure && make && make install
 ```
 
 This will install bodylogger and the needed python prerequisites from pip.
@@ -36,9 +21,6 @@ To uninstall, simply run:
 ```bash
 make uninstall
 ```
-
-**WARNING**: This will uninstall user database files as well. Backup `~/.bodylogger/users` if you want to retain these files.
-
 
 ## Testing
 

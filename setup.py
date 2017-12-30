@@ -3,7 +3,14 @@ setup(
     name="bodylogger",
     version="0.6.0",
     packages=find_packages(),
-    
+    install_requires=[
+        "click",
+        "numpy",
+        "pandas",
+        "matplotlib",
+        "statsmodels",
+        "colorama"
+    ],
     entry_points={
         'console_scripts': [
             'bodylogger = bodylogger.bodylogger:bodylogger',

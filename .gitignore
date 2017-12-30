@@ -1,5 +1,6 @@
 ### Application-Specific
 bodylogger/users/Ryder.db
+PKGBUILD
 
 ### Default python .gitignore pulled from https://github.com/github/gitignore/blob/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
