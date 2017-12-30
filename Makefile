@@ -1,12 +1,14 @@
 .PHONY: test upload clean
 
+build:
+	sudo python setup.py build
+
 install:
 	mkdir -p ~/.bodylogger/users
 	sudo python setup.py install
 	cp -u bodylogger/users/* ~/.bodylogger/users
 
 uninstall:
-	sudo rm -rf ~/.bodylogger
 	sudo pip uninstall bodylogger
 
 test:
