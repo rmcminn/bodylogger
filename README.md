@@ -6,7 +6,7 @@ Command line app that logs body weight and other personal measurements.
 
 ### Installing
 
-### Arch
+#### Arch
 
 You can install from the AUR via a helper.
 
