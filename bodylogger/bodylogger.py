@@ -59,7 +59,7 @@ def check_date(date_string):
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.6.0')
+@click.version_option(version='0.7.0')
 def bodylogger():
     """
     Maintains a user database of personal measurements while giving

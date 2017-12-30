@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name="bodylogger",
-    version="0.6.0",
+    version="0.7.0",
     packages=find_packages(),
     install_requires=[
         "click",
@@ -20,7 +20,7 @@ setup(
     # metadata
     author="Ryder McMinn",
     author_email="mcminnra@gmail.com",
-    description="Command line app that logs body weight and other personal measurements.",
+    description="Maintains a user database of personal measurements while giving stats and predictions based on trends.",
     license="MIT",
     keywords="weight body logger fitness health statistics tracking tracker",
     url="https://github.com/rmcminn/bodylogger",
