@@ -1,6 +1,6 @@
 # Body Logger
 
-Command line app that logs body weight and other personal measurements.
+Maintains a database of body weight measurements while giving stats and predictions based on trends.
 
 ## Getting Started
 
