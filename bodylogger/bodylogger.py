@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-# Body Logger
+"""Main Module for Bodylogger"""
 
 import click  # need colorama for colors
 import sqlite3
@@ -25,16 +24,19 @@ with warnings.catch_warnings():
 
 _ROOT = str(Path.home()) + '/.bodylogger'
 
-now = datetime.datetime.now()
+NOW = datetime.datetime.now()
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-# ===========================================================================================================
+# =============================================================================
 # Utility Functions
-# ===========================================================================================================
-
+# =============================================================================
 
 def is_user(user):
+    """
+    Checks to see is a user is a created user database
+    """
+    
     files = [f for f in listdir(_ROOT + '/users/') if isfile(join(_ROOT + '/users/', f))]
     users = [s.split('.')[0] for s in files]
 
@@ -47,6 +49,10 @@ def is_user(user):
         return False
 
 def check_date(date_string):
+    """
+    Checks to see is dat is in YYYY-MM-DD format
+    """
+
     try:
         date = datetime.datetime.strptime(date_string, "%Y-%m-%d")
         date = str(date.year) + '-' + str(date.month) + '-' + str(date.day)
@@ -54,7 +60,6 @@ def check_date(date_string):
         return False
 
     return date
-    
 
 
 # Init App Entry
@@ -67,13 +72,13 @@ def bodylogger():
     """
     pass
 
-# ===========================================================================================================
+# =============================================================================
 # Record Commands
-# ===========================================================================================================
+# =============================================================================
 @bodylogger.command()
 @click.argument('user')
 @click.option('-d', '--date',
-              default=now.strftime("%Y-%m-%d"),
+              default=NOW.strftime("%Y-%m-%d"),
               help="Specify date to add record (Default: Today)")
 @click.option('-w', '--weight',
               type=float,
@@ -93,7 +98,7 @@ def add(user, date, weight):
     if not check_date(date):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
         return 1
-    
+   
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -402,11 +407,11 @@ def plot(user, output):
         label.set_fontsize('large')
 
     for label in legend.get_lines():
-            label.set_linewidth(1.5)  # the legend line width
+        label.set_linewidth(1.5)  # the legend line width
 
     # Only show every nth label
     n = 7
-    [l.set_visible(False) for (i,l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]
+    [l.set_visible(False) for (i, l) in enumerate(ax.xaxis.get_ticklabels()) if i % n != 0]
 
     # Rotate label 90 degree and turn on grid
     plt.xticks(rotation=90, size='x-small')
@@ -419,9 +424,9 @@ def plot(user, output):
         plt.show()
 
 
-# ==========================================================================================================
+# =============================================================================
 # User Commands
-# ==========================================================================================================
+# =============================================================================
 
 @bodylogger.command()
 @click.argument('user')
@@ -443,9 +448,9 @@ def createuser(user):
 
     conn.commit()
     click.echo("[" + click.style('CREATED USER', fg='green', bold=True) + "] - user: " + str(user))
-            
+           
     conn.close()
-    
+   
 
 @bodylogger.command()
 def listusers():
