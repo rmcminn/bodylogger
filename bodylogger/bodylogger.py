@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Main Module for Bodylogger"""
+"""
+Main Module for Bodylogger
+
+Maintains a database of body weight measurements while giving stats and predictions based on trends.
+"""
 
 import click  # need colorama for colors
 import sqlite3
@@ -50,13 +54,13 @@ def is_user(user):
 
 def check_date(date_string):
     """
-    Checks to see is dat is in YYYY-MM-DD format
+    Checks to see if date is in YYYY-MM-DD format
     """
 
     try:
         date = datetime.datetime.strptime(date_string, "%Y-%m-%d")
         date = str(date.year) + '-' + str(date.month) + '-' + str(date.day)
-    except Exception:
+    except ValueError:
         return False
 
     return date
@@ -98,7 +102,7 @@ def add(user, date, weight):
     if not check_date(date):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
         return 1
-   
+  
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -107,10 +111,10 @@ def add(user, date, weight):
     c.execute("SELECT date FROM records WHERE date=?", date_sql)
     date_exists = c.fetchone()
 
-    if date_exists is not None:  # Update
+    if date_exists is not None:  # SQL UPDATE
         c.execute("UPDATE records SET weight=" + str(weight) + " WHERE date = '" + str(date) + "'")
         click.echo("[" + click.style('Updated', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", weight: " + str(weight))
-    else: # Add
+    else: # SQL ADD
         c.execute("INSERT INTO records VALUES ('" + str(date) + "', "+ str(weight) + ")")
         click.echo("[" + click.style('Added', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", weight: " + str(weight))
 
@@ -169,7 +173,7 @@ def list(user, n):
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
         return 1
-    
+   
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -194,7 +198,7 @@ def stats(user):
     if not is_user(user):
         click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
         return 1
-    
+   
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
@@ -214,7 +218,7 @@ def stats(user):
         click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
 
     # DataFrames for Calculations
-    records_df = pd.DataFrame(records, columns=['date','weight'])
+    records_df = pd.DataFrame(records, columns=['date', 'weight'])
     records_df['date'] = pd.to_datetime(records_df['date'])
     records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
     records_df = records_df.set_index('date')
@@ -225,12 +229,12 @@ def stats(user):
     for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-90 days') AND datetime('now', 'localtime') ORDER BY date;"):
         records.append(row)
 
-    weight_lost_90 = round(records[-1][1] - records[0][1], 1)
     if len(records) == 1:
         click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 90 DAYS **", fg='yellow'))
-    elif len(records) == 0:
+    elif not records:
         click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 90 DAYS **", fg='yellow'))
     else:
+        weight_lost_90 = round(records[-1][1] - records[0][1], 1)
         if weight_lost_90 < 0:
             click.echo('Weight +/- in Past 90 Days: ' + click.style(str(weight_lost_90), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
         else:
@@ -241,28 +245,29 @@ def stats(user):
     for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-30 days') AND datetime('now', 'localtime') ORDER BY date;"):
         records.append(row)
 
-    weight_lost_30 = round(records[-1][1] - records[0][1], 1)
     if len(records) == 1:
         click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 30 DAYS **", fg='yellow'))
-    elif len(records) == 0:
+    elif not records:
         click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 30 DAYS **", fg='yellow'))
     else:
+        weight_lost_30 = round(records[-1][1] - records[0][1], 1)
         if weight_lost_30 < 0:
             click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
         else:
             click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+
 
     # Weight Lost in Past 7 Days
     records = []
     for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-7 days') AND datetime('now', 'localtime') ORDER BY date;"):
         records.append(row)
 
-    weight_lost_7 = round(records[-1][1] - records[0][1], 1)
     if len(records) == 1:
         click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 7 DAYS **", fg='yellow'))
-    elif len(records) == 0:
+    elif not records:
         click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 7 DAYS **", fg='yellow'))
     else:
+        weight_lost_7 = round(records[-1][1] - records[0][1], 1)
         if weight_lost_7 < 0:
             click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
         else:
@@ -273,16 +278,16 @@ def stats(user):
         stddev = np.std(weights)[0]
         sem = stddev / np.sqrt(len(weights))
 
-        click.echo("\n1 Sigma: " + str(np.round(stddev,1)) + " (68%)")
-        click.echo("2 Sigma: " + str(np.round(stddev*2,1)) + " (95%)")
-        click.echo("3 Sigma: " + str(np.round(stddev*3,1)) + " (99.7%)")
+        click.echo("\n1 Sigma: " + str(np.round(stddev, 1)) + " (68%)")
+        click.echo("2 Sigma: " + str(np.round(stddev*2, 1)) + " (95%)")
+        click.echo("3 Sigma: " + str(np.round(stddev*3, 1)) + " (99.7%)")
         click.echo("SEM: " + str(np.round(sem, 1)))
 
         # EMA
         ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
         ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
         ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
-        
+       
         click.echo('\nEMA 90: ' + str(ema_90))
         click.echo('EMA 30: ' + str(ema_30))
         click.echo('EMA  7: ' + str(ema_7))
@@ -293,22 +298,22 @@ def stats(user):
             click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 30 Day EMA is higher than 90 day -- Indicates a prolonged upward trend.")
     else:
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
-        
+       
     # ARIMA
     if len(records_df) > 4:  # make sure there is enough degrees of freedom
         model = ARIMA(records_df, order=(4, 1, 0))
         model_fit = model.fit(disp=0)
 
-        ARIMA_30 = model_fit.forecast(30)
-        predict_ARIMA_30 = np.round(ARIMA_30[0][-1], 1)
-        conf_ARIMA_30 = np.round(ARIMA_30[2][-1], 1)
+        arima_30 = model_fit.forecast(30)
+        predict_arima_30 = np.round(arima_30[0][-1], 1)
+        conf_arima_30 = np.round(arima_30[2][-1], 1)
 
-        ARIMA_7 = model_fit.forecast(7)
-        predict_ARIMA_7 = np.round(ARIMA_7[0][-1], 1)
-        conf_ARIMA_7 = np.round(ARIMA_7[2][-1], 1)
+        arima_7 = model_fit.forecast(7)
+        predict_arima_7 = np.round(arima_7[0][-1], 1)
+        conf_arima_7 = np.round(arima_7[2][-1], 1)
               
-        click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_ARIMA_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_30) + " -> " + click.style(str(conf_ARIMA_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-        click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_ARIMA_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_ARIMA_7) + " -> " + click.style(str(conf_ARIMA_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+        click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_arima_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_30) + " -> " + click.style(str(conf_arima_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+        click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_arima_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_7) + " -> " + click.style(str(conf_arima_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
     else:
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
 

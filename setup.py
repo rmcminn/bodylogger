@@ -20,7 +20,7 @@ setup(
     # metadata
     author="Ryder McMinn",
     author_email="mcminnra@gmail.com",
-    description="Maintains a user database of personal measurements while giving stats and predictions based on trends.",
+    description="Maintains a database of body weight measurements while giving stats and predictions based on trends.",
     license="MIT",
     keywords="weight body logger fitness health statistics tracking tracker",
     url="https://github.com/rmcminn/bodylogger",
