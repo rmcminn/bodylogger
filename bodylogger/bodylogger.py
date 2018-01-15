@@ -40,7 +40,7 @@ def is_user(user):
     """
     Checks to see is a user is a created user database
     """
-    
+   
     files = [f for f in listdir(_ROOT + '/users/') if isfile(join(_ROOT + '/users/', f))]
     users = [s.split('.')[0] for s in files]
 
@@ -65,6 +65,24 @@ def check_date(date_string):
 
     return date
 
+def get_sec(time_str):
+    '''
+    Converts duration string (HH:MM:SS) to total seconds
+    '''
+    h, m, s = time_str.split(':')
+    return int(h) * 3600 + int(m) * 60 + int(s)
+
+def sec_to_str(sec):
+    hour = int(sec // 3600)
+    minutes = int(sec // 60)
+    seconds = int(sec - (minutes * 60))
+    
+    # force numbers to include leading zeros
+    hours = "%02d" % (hour,)
+    minutes = "%02d" % (minutes,)
+    seconds = "%02d" % (seconds,)
+
+    return str(hour) + ":" + str(minutes) + ":" + str(seconds)
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -157,6 +175,93 @@ def delete(user, date):
     conn.commit()
     conn.close()
 
+# =============================================================================
+# Run Commands
+# =============================================================================
+@bodylogger.command()
+@click.argument('user')
+@click.option('-d', '--date',
+              default=NOW.strftime("%Y-%m-%d"),
+              help="Specify date to add record (Default: Today)")
+@click.option('-di', '--distance',
+              type=float,
+              prompt="Enter in distance (mi)",
+              help='Distance ran')
+@click.option('-t', '--time',
+              type=str,
+              prompt="Enter in time (HH:MM:SS)",
+              help='Duration of run')
+def addrun(user, date, distance, time):
+    """
+    Adds a run for a specific date
+    """
+
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+
+    # Check for proper date format
+    if not check_date(date):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
+        return 1
+  
+    # convert duration to seconds
+    time = get_sec(time)
+
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
+    c = conn.cursor()
+
+    # Check for date in db
+    date_sql = (date,)
+    c.execute("SELECT date FROM runs WHERE date=?", date_sql)
+    date_exists = c.fetchone()
+
+    if date_exists is not None:  # SQL UPDATE
+        c.execute("UPDATE runs SET distance=" + str(distance) + ", time=" + str(time) + " WHERE date = '" + str(date) + "'")
+        click.echo("[" + click.style('Updated', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", distance: " + str(distance) + ", time: " + sec_to_str(time))
+    else: # SQL ADD
+        c.execute("INSERT INTO runs VALUES ('" + str(date) + "', "+ str(distance) + ", "+ str(time) + ")")
+        click.echo("[" + click.style('Added', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date) + ", distance: " + str(distance) + ", time: " + sec_to_str(time))
+
+    conn.commit()
+    conn.close()
+
+# Deleterun
+@bodylogger.command()
+@click.argument('user')
+@click.option('-d', '--date',
+              prompt="What day would you like to delete (YYYY-mm-dd)",
+              help="Specify date to delete run")
+def deleterun(user, date):
+    """
+    Deletes a run for a specific date
+    """
+
+    # Check for user
+    if not is_user(user):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " not found. Please see 'listusers' for a user list, or 'createuser' to create one.")
+        return 1
+
+    # Check for proper date format
+    if not check_date(date):
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Date " + str(date) + " is in an incorrect format. Please use YYYY-MM-DD")
+        return 1
+    
+    conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
+    c = conn.cursor()
+
+    date_sql = (date,)
+    c.execute("SELECT date FROM runs WHERE date=?", date_sql)
+    date_exists = c.fetchone()
+    if date_exists is not None:
+        c.execute("DELETE FROM runs WHERE date = '" + str(date) + "'")
+        click.echo("[" + click.style('DELETED', fg='green', bold=True) + "] - user: " + str(user) + ", date: " + str(date))
+    else:
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - Run with that date does not exist")
+
+    conn.commit()
+    conn.close()
 
 # list
 @bodylogger.command()
@@ -177,11 +282,17 @@ def list(user, n):
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
 
-    click.echo("[" + click.style("DISPLAYING LAST " + str(n) + " RECORDS", fg='green') + "]")
+    n_wrap = (n,) # wrap to prevent SQL injection
 
-    n = (n,)
-    for row in c.execute('SELECT * FROM records ORDER BY date DESC LIMIT ?', n):
+    # Weight
+    click.echo("[" + click.style("DISPLAYING LAST " + str(n) + " RECORDS", fg='green') + "]")
+    for row in c.execute('SELECT * FROM records ORDER BY date DESC LIMIT ?', n_wrap):
         click.echo(str(row[0]) + ": " + str(row[1]))
+
+    # Run
+    click.echo("\n[" + click.style("DISPLAYING LAST " + str(n) + " RUNS", fg='green') + "]")
+    for row in c.execute('SELECT * FROM runs ORDER BY date DESC LIMIT ?', n_wrap):
+        click.echo(str(row[0]) + ": " + str(row[1]) + ", " + sec_to_str(row[2]))
 
     conn.commit()
     conn.close()
@@ -450,6 +561,7 @@ def createuser(user):
 
     # Create table if doesn't exist
     c.execute("CREATE TABLE IF NOT EXISTS records (date text, weight float)")
+    c.execute("CREATE TABLE IF NOT EXISTS runs (date text, distance float, time float)")
 
     conn.commit()
     click.echo("[" + click.style('CREATED USER', fg='green', bold=True) + "] - user: " + str(user))
