@@ -73,16 +73,20 @@ def get_sec(time_str):
     return int(h) * 3600 + int(m) * 60 + int(s)
 
 def sec_to_str(sec):
-    hour = int(sec // 3600)
-    minutes = int(sec // 60)
-    seconds = int(sec - (minutes * 60))
-    
+    '''
+    Converts total seconds to duration string (HH:MM:SS)
+    '''
+
+    hours = int(sec // 3600)
+    minutes = int((sec // 60) - (hours * 60))
+    seconds = int(sec - (minutes * 60) - (hours * 3600))
+   
     # force numbers to include leading zeros
-    hours = "%02d" % (hour,)
+    hours = "%02d" % (hours,)
     minutes = "%02d" % (minutes,)
     seconds = "%02d" % (seconds,)
 
-    return str(hour) + ":" + str(minutes) + ":" + str(seconds)
+    return str(hours) + ":" + str(minutes) + ":" + str(seconds)
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -320,113 +324,144 @@ def stats(user):
     for row in c.execute('SELECT * FROM records ORDER BY date'):
         records.append(row)
 
-    click.echo("\nCurrent Weight: " + str(records[-1][1]) + " ( " + str(records[-1][0]) + " )")
+    if len(records) != 0:
+        click.echo("\nCurrent Weight: " + str(records[-1][1]) + " ( " + str(records[-1][0]) + " )")
 
-    total_weight_lost = round(records[-1][1] - records[0][1], 1)
-    if total_weight_lost < 0:
-        click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
-    else:
-        click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
-
-    # DataFrames for Calculations
-    records_df = pd.DataFrame(records, columns=['date', 'weight'])
-    records_df['date'] = pd.to_datetime(records_df['date'])
-    records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
-    records_df = records_df.set_index('date')
-    weights = pd.DataFrame([row[1] for row in records])
-
-    # Weight Lost in Past 90 Days
-    records = []
-    for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-90 days') AND datetime('now', 'localtime') ORDER BY date;"):
-        records.append(row)
-
-    if len(records) == 1:
-        click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 90 DAYS **", fg='yellow'))
-    elif not records:
-        click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 90 DAYS **", fg='yellow'))
-    else:
-        weight_lost_90 = round(records[-1][1] - records[0][1], 1)
-        if weight_lost_90 < 0:
-            click.echo('Weight +/- in Past 90 Days: ' + click.style(str(weight_lost_90), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+        total_weight_lost = round(records[-1][1] - records[0][1], 1)
+        if total_weight_lost < 0:
+            click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
         else:
-            click.echo('Weight +/- in Past 90 Days: ' + click.style(str(weight_lost_90), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            click.echo('Total Weight +/-: ' + click.style(str(total_weight_lost), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )\n")
 
-    # Weight Lost in Past 30 Days
-    records = []
-    for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-30 days') AND datetime('now', 'localtime') ORDER BY date;"):
-        records.append(row)
+        # DataFrames for Calculations
+        records_df = pd.DataFrame(records, columns=['date', 'weight'])
+        records_df['date'] = pd.to_datetime(records_df['date'])
+        records_df['weight'] = records_df['weight'].apply(pd.to_numeric)
+        records_df = records_df.set_index('date')
+        weights = pd.DataFrame([row[1] for row in records])
 
-    if len(records) == 1:
-        click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 30 DAYS **", fg='yellow'))
-    elif not records:
-        click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 30 DAYS **", fg='yellow'))
-    else:
-        weight_lost_30 = round(records[-1][1] - records[0][1], 1)
-        if weight_lost_30 < 0:
-            click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+        # Weight Lost in Past 90 Days
+        records = []
+        for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-90 days') AND datetime('now', 'localtime') ORDER BY date;"):
+            records.append(row)
+
+        if len(records) == 1:
+            click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 90 DAYS **", fg='yellow'))
+        elif not records:
+            click.echo('Weight +/- in Past 90 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 90 DAYS **", fg='yellow'))
         else:
-            click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            weight_lost_90 = round(records[-1][1] - records[0][1], 1)
+            if weight_lost_90 < 0:
+                click.echo('Weight +/- in Past 90 Days: ' + click.style(str(weight_lost_90), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            else:
+                click.echo('Weight +/- in Past 90 Days: ' + click.style(str(weight_lost_90), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
 
+        # Weight Lost in Past 30 Days
+        records = []
+        for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-30 days') AND datetime('now', 'localtime') ORDER BY date;"):
+            records.append(row)
 
-    # Weight Lost in Past 7 Days
-    records = []
-    for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-7 days') AND datetime('now', 'localtime') ORDER BY date;"):
-        records.append(row)
-
-    if len(records) == 1:
-        click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 7 DAYS **", fg='yellow'))
-    elif not records:
-        click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 7 DAYS **", fg='yellow'))
-    else:
-        weight_lost_7 = round(records[-1][1] - records[0][1], 1)
-        if weight_lost_7 < 0:
-            click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+        if len(records) == 1:
+            click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 30 DAYS **", fg='yellow'))
+        elif not records:
+            click.echo('Weight +/- in Past 30 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 30 DAYS **", fg='yellow'))
         else:
-            click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            weight_lost_30 = round(records[-1][1] - records[0][1], 1)
+            if weight_lost_30 < 0:
+                click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            else:
+                click.echo('Weight +/- in Past 30 Days: ' + click.style(str(weight_lost_30), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
 
-    # Standard Deviation and Standard Error
-    if len(records_df) > 1: # Can't calculate much on 1 record
-        stddev = np.std(weights)[0]
-        sem = stddev / np.sqrt(len(weights))
 
-        click.echo("\n1 Sigma: " + str(np.round(stddev, 1)) + " (68%)")
-        click.echo("2 Sigma: " + str(np.round(stddev*2, 1)) + " (95%)")
-        click.echo("3 Sigma: " + str(np.round(stddev*3, 1)) + " (99.7%)")
-        click.echo("SEM: " + str(np.round(sem, 1)))
+        # Weight Lost in Past 7 Days
+        records = []
+        for row in c.execute("SELECT * FROM records WHERE date BETWEEN datetime('now', '-7 days') AND datetime('now', 'localtime') ORDER BY date;"):
+            records.append(row)
 
-        # EMA
-        ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
-        ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
-        ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
-       
-        click.echo('\nEMA 90: ' + str(ema_90))
-        click.echo('EMA 30: ' + str(ema_30))
-        click.echo('EMA  7: ' + str(ema_7))
+        if len(records) == 1:
+            click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " ) " + click.style("** ONLY 1 RECORD IN PAST 7 DAYS **", fg='yellow'))
+        elif not records:
+            click.echo('Weight +/- in Past  7 Days: ' + click.style("0.0", fg='yellow') + click.style(" ** NO RECORDS IN PAST 7 DAYS **", fg='yellow'))
+        else:
+            weight_lost_7 = round(records[-1][1] - records[0][1], 1)
+            if weight_lost_7 < 0:
+                click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='green') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
+            else:
+                click.echo('Weight +/- in Past  7 Days: ' + click.style(str(weight_lost_7), fg='red') + " ( " + str(records[0][0]) + " -> " + str(records[-1][0]) + " )")
 
-        if ema_30 < ema_7:
-            click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 7 Day EMA is higher than 30 day -- Indicates an upward trend.")
-        if ema_90 < ema_30:
-            click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 30 Day EMA is higher than 90 day -- Indicates a prolonged upward trend.")
+        # Standard Deviation and Standard Error
+        if len(records_df) > 1: # Can't calculate much on 1 record
+            stddev = np.std(weights)[0]
+            sem = stddev / np.sqrt(len(weights))
+
+            click.echo("\n1 Sigma: " + str(np.round(stddev, 1)) + " (68%)")
+            click.echo("2 Sigma: " + str(np.round(stddev*2, 1)) + " (95%)")
+            click.echo("3 Sigma: " + str(np.round(stddev*3, 1)) + " (99.7%)")
+            click.echo("SEM: " + str(np.round(sem, 1)))
+
+            # EMA
+            ema_90 = np.round(records_df.ewm(span=90).mean().iloc[-1].values[0], 1)
+            ema_30 = np.round(records_df.ewm(span=30).mean().iloc[-1].values[0], 1)
+            ema_7 = np.round(records_df.ewm(span=7).mean().iloc[-1].values[0], 1)
+        
+            click.echo('\nEMA 90: ' + str(ema_90))
+            click.echo('EMA 30: ' + str(ema_30))
+            click.echo('EMA  7: ' + str(ema_7))
+
+            if ema_30 < ema_7:
+                click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 7 Day EMA is higher than 30 day -- Indicates an upward trend.")
+            if ema_90 < ema_30:
+                click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 30 Day EMA is higher than 90 day -- Indicates a prolonged upward trend.")
+        else:
+            click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
+        
+        # ARIMA
+        if len(records_df) > 4:  # make sure there is enough degrees of freedom
+            model = ARIMA(records_df, order=(4, 1, 0))
+            model_fit = model.fit(disp=0)
+
+            arima_30 = model_fit.forecast(30)
+            predict_arima_30 = np.round(arima_30[0][-1], 1)
+            conf_arima_30 = np.round(arima_30[2][-1], 1)
+
+            arima_7 = model_fit.forecast(7)
+            predict_arima_7 = np.round(arima_7[0][-1], 1)
+            conf_arima_7 = np.round(arima_7[2][-1], 1)
+                
+            click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_arima_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_30) + " -> " + click.style(str(conf_arima_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+            click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_arima_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_7) + " -> " + click.style(str(conf_arima_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+        else:
+            click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
     else:
-        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
-       
-    # ARIMA
-    if len(records_df) > 4:  # make sure there is enough degrees of freedom
-        model = ARIMA(records_df, order=(4, 1, 0))
-        model_fit = model.fit(disp=0)
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No weights recorded.")
 
-        arima_30 = model_fit.forecast(30)
-        predict_arima_30 = np.round(arima_30[0][-1], 1)
-        conf_arima_30 = np.round(arima_30[2][-1], 1)
 
-        arima_7 = model_fit.forecast(7)
-        predict_arima_7 = np.round(arima_7[0][-1], 1)
-        conf_arima_7 = np.round(arima_7[2][-1], 1)
-              
-        click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_arima_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_30) + " -> " + click.style(str(conf_arima_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-        click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_arima_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_7) + " -> " + click.style(str(conf_arima_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
+    # Runs
+    click.echo("\n[" + click.style("RUN STATISTICS FOR USER - " + str(user), fg='green') + "]")
+
+    runs = []
+    for row in c.execute('SELECT * FROM runs ORDER BY date DESC'):
+        runs.append(row)
+
+    total_runs = len(runs)
+
+    if total_runs != 0:
+        total_miles = 0
+        total_time = 0
+        for r in runs:
+            total_miles += r[1]
+            total_time += r[2]
+
+        # Total Stats
+        click.echo('Total Miles Ran: ' + str(total_miles))
+        click.echo('Total Time Ran: ' + sec_to_str(total_time))
+
+        # Avg Stats
+        click.echo('\nAvg. Miles Per Run: ' + str(total_miles / total_runs))
+        click.echo('Avg. Time Per Run: ' + sec_to_str(total_time / total_runs))
+        click.echo('Avg. Pace per Mile: ' + sec_to_str(total_time / total_miles))
     else:
-        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No runs recorded.")
 
     conn.close()
 
@@ -453,6 +488,11 @@ def plot(user, output):
     records = []
     for row in c.execute('SELECT * FROM records ORDER BY date'):
         records.append(row)
+
+    # Check for weights for plot
+    if len(records) == 0:
+        click.echo("[" + click.style('ERROR', fg='red', bold=True) + "] - User " + str(user) + " has no weights recorded. Please see 'add' to add weight records.")
+        return 1
 
     # DataFrames for Calculations
     records_df = pd.DataFrame(records, columns=['date', 'weight'])
