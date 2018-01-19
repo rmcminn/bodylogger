@@ -65,7 +65,7 @@ def check_date(date_string):
 
     return date
 
-def get_sec(time_str):
+def str_to_sec(time_str):
     '''
     Converts duration string (HH:MM:SS) to total seconds
     '''
@@ -211,7 +211,7 @@ def addrun(user, date, distance, time):
         return 1
   
     # convert duration to seconds
-    time = get_sec(time)
+    time = str_to_sec(time)
 
     conn = sqlite3.connect(_ROOT + '/users/' + str(user) + '.db')
     c = conn.cursor()
@@ -305,7 +305,7 @@ def list(user, n):
     runs = []
     for row in c.execute('SELECT * FROM runs ORDER BY date DESC LIMIT ?', n_wrap):
         runs.append(row)
-        
+
     if not runs:  #is_empty check
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No runs recorded.")
     else:
