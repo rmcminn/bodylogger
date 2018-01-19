@@ -90,7 +90,7 @@ def sec_to_str(sec):
 
 # Init App Entry
 @click.group(context_settings=CONTEXT_SETTINGS)
-@click.version_option(version='0.7.1')
+@click.version_option(version='0.8.0')
 def bodylogger():
     """
     Maintains a user database of personal measurements while giving
