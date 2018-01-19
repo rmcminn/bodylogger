@@ -290,13 +290,28 @@ def list(user, n):
 
     # Weight
     click.echo("[" + click.style("DISPLAYING LAST " + str(n) + " RECORDS", fg='green') + "]")
+    records = []
     for row in c.execute('SELECT * FROM records ORDER BY date DESC LIMIT ?', n_wrap):
-        click.echo(str(row[0]) + ": " + str(row[1]))
+        records.append(row)
+
+    if not records:  # is_empty check
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No weights recorded.")
+    else:
+        for r in records:
+            click.echo(str(r[0]) + ": " + str(r[1]))
 
     # Run
     click.echo("\n[" + click.style("DISPLAYING LAST " + str(n) + " RUNS", fg='green') + "]")
+    runs = []
     for row in c.execute('SELECT * FROM runs ORDER BY date DESC LIMIT ?', n_wrap):
-        click.echo(str(row[0]) + ": " + str(row[1]) + ", " + sec_to_str(row[2]))
+        runs.append(row)
+        
+    if not runs:  #is_empty check
+        click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No runs recorded.")
+    else:
+        for r in runs:
+            click.echo(str(r[0]) + ": " + str(r[1]) + ", " + sec_to_str(r[2]))
+
 
     conn.commit()
     conn.close()
@@ -414,24 +429,6 @@ def stats(user):
                 click.echo("[" + click.style('WARNING', fg='yellow', bold=True) + "] - 30 Day EMA is higher than 90 day -- Indicates a prolonged upward trend.")
         else:
             click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Need more than 1 data point to run calculations.")
-        
-        # ARIMA
-        if len(records_df) > 4:  # make sure there is enough degrees of freedom
-            model = ARIMA(records_df, order=(4, 1, 0))
-            model_fit = model.fit(disp=0)
-
-            arima_30 = model_fit.forecast(30)
-            predict_arima_30 = np.round(arima_30[0][-1], 1)
-            conf_arima_30 = np.round(arima_30[2][-1], 1)
-
-            arima_7 = model_fit.forecast(7)
-            predict_arima_7 = np.round(arima_7[0][-1], 1)
-            conf_arima_7 = np.round(arima_7[2][-1], 1)
-                
-            click.echo("\nARIMA 30 Day Forecast: " + click.style(str(conf_arima_30[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_30) + " -> " + click.style(str(conf_arima_30[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-            click.echo("ARIMA 7 Day Forecast: " + click.style(str(conf_arima_7[0]) + " (Lower 95% Conf. Bound)", fg='red') + " <- " + str(predict_arima_7) + " -> " + click.style(str(conf_arima_7[1]) + " (Upper 95% Conf. Bound)", fg='red'))
-        else:
-            click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
     else:
         click.echo("\n[" + click.style('NOTICE', fg='yellow', bold=True) + "] - No weights recorded.")
 
@@ -505,39 +502,6 @@ def plot(user, output):
     ema_30_plot = records_df.ewm(span=30).mean()
     ema_7_plot = records_df.ewm(span=7).mean()
 
-    # ARIMA
-    if len(records_df) > 4:  # Make sure there is enough degrees of freedom
-        model = ARIMA(records_df, order=(4, 1, 0))
-        model_fit = model.fit(disp=0)
-        ARIMA_30 = model_fit.forecast(30)
-        ARIMA_7 = model_fit.forecast(7)
-
-        # ARIMA 30
-        start = pd.to_datetime(records[-1][0])
-        step = datetime.timedelta(days=1)
-        start += step  # Start tomorrow
-
-        result30 = []
-        count = 0
-        while count < len(ARIMA_30[0]):
-            result30.append(start.strftime('%Y-%m-%d'))
-            start += step
-            count += 1
-
-        # ARIMA 7
-        start = pd.to_datetime(records[-1][0])
-        step = datetime.timedelta(days=1)
-        start += step  # Start tomorrow
-
-        result7 = []
-        count = 0
-        while count < len(ARIMA_7[0]):
-            result7.append(start.strftime('%Y-%m-%d'))
-            start += step
-            count += 1
-    else:
-        click.echo("[" + click.style('NOTICE', fg='yellow', bold=True) + "] - Insufficient degrees of freedom for ARIMA forecast, need 4 data points.")
-
     # Plots
     fig, ax = plt.subplots()
     ax.plot(records_df, "b-", label='Weight')
@@ -545,12 +509,8 @@ def plot(user, output):
     ax.plot(ema_30_plot, "y-", label='EMA 30')
     ax.plot(ema_7_plot, "g-", label='EMA 7')
 
-    if len(records_df) > 4:  # Make sure there is enough degrees of freedom
-        ax.plot(result30, ARIMA_30[0], 'r--', label="ARIMA 30 Day Forecast")
-        ax.plot(result7, ARIMA_7[0], 'g--', label='ARIMA 7 Day Forecast')
-
     ax.set(xlabel='Date', ylabel='Weight',
-           title='Weight over Time - ' + str(user) + " (Generated: " + str(records[-1][0]) + ")")
+           title='Weight over Time - ' + str(user))
     # Now add the legend with some customizations.
     legend = ax.legend(loc='upper right')
 
